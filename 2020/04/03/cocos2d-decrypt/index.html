@@ -2,13 +2,13 @@
 <p>遂拿起半吊子的技术尝试照猫画虎。</p>
 <a id="more"></a>
 <h2 id="开始"><a href="#开始" class="headerlink" title="开始"></a>开始</h2><p>先是将手机安装的APK文件导出，直接adb pull将/data/app里的APK文件拉取。</p>
-<p>然后解压查看lib目录发现<br><img src="/.io//lib%E7%9B%AE%E5%BD%95.jpg" alt="lib目录"><br>很明显这是一款基于cocos2dlua开发的手游，然后来到\assets\src目录下</p>
-<p><img src="/.io//src%E7%9B%AE%E5%BD%95.png" alt="src目录"><br>不过直接打开显示乱码，显然是经过加密的。</p>
+<p>然后解压查看lib目录发现<br>!<img src="/2020/04/03/cocos2d-decrypt/lib%E7%9B%AE%E5%BD%95.jpg" class="" title="lib目录"><br>很明显这是一款基于cocos2dlua开发的手游，然后来到\assets\src目录下</p>
+<p>!<img src="/2020/04/03/cocos2d-decrypt/src%E7%9B%AE%E5%BD%95.png" class="" title="src目录"><br>不过直接打开显示乱码，显然是经过加密的。</p>
 <h2 id="前期思考"><a href="#前期思考" class="headerlink" title="前期思考"></a>前期思考</h2><p>网上搜索cocos2d加密，根据文件的内容结构，应该是以cocos2dlua默认的加密方法XXTEA算法进行加密的。</p>
-<p>这种算法拥有相应的标识符和密钥，所以被加密的lua文件开头的一串<code>FF98392D</code>应该就是相应的标识<br><img src="/.io//sign%E6%A0%87%E8%AF%86.png" alt="sign标识"></p>
-<p>接下来需要拿到密钥，直接拿起IDA对cocos2dlua.so进行调试。用IDA打开so等待自动分析完成，然后建立string list，直接搜索这个标识<code>FF98392D</code><br><img src="/.io//%E5%AE%9A%E4%BD%8D%E5%88%B0%E5%AF%86%E9%92%A5%E5%92%8C%E6%A0%87%E8%AF%86.png" alt="定位到密钥和标识"></p>
+<p>这种算法拥有相应的标识符和密钥，所以被加密的lua文件开头的一串<code>FF98392D</code>应该就是相应的标识<br>!<img src="/2020/04/03/cocos2d-decrypt/sign%E6%A0%87%E8%AF%86.png" class="" title="sign标识"></p>
+<p>接下来需要拿到密钥，直接拿起IDA对cocos2dlua.so进行调试。用IDA打开so等待自动分析完成，然后建立string list，直接搜索这个标识<code>FF98392D</code><br>!<img src="/2020/04/03/cocos2d-decrypt/%E5%AE%9A%E4%BD%8D%E5%88%B0%E5%AF%86%E9%92%A5%E5%92%8C%E6%A0%87%E8%AF%86.png" class="" title="定位到密钥和标识"></p>
 <p>可以看到一个奇怪的字符串witu_xxWEM，然后使用网上下载的XXTEADecrypt软件进行解码。</p>
-<p>然后心满意足的打开.lua脚本，惊讶的发现还是不可读的乱码。<br><img src="/.io//%E4%B9%B1%E7%A0%81.png" alt="还是乱码"></p>
+<p>然后心满意足的打开.lua脚本，惊讶的发现还是不可读的乱码。<br>!<img src="/2020/04/03/cocos2d-decrypt/%E4%B9%B1%E7%A0%81.png" class="" title="还是乱码"></p>
 <p>不过这个文件的前几个字节还是一样的有标识<code>LJ</code> 所以我想是不是还是经过了一层XXTEA的加密。</p>
 <p>于是我将<code>LJ</code>当做标识,IDA里继续搜索<code>LJ</code>获得Key，但是这次没有一个看似正确的结果。于是只能对汇编的代码进行分析。</p>
 <h2 id="半吊子汇编"><a href="#半吊子汇编" class="headerlink" title="半吊子汇编"></a>半吊子汇编</h2><p>在查阅cocos2dlua的资料后，我知道程序载入资源基本是通过luaLoadBuffer，许多直接hook函数解码的方法也是对该函数进行hook。</p>
